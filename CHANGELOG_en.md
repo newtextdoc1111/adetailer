@@ -26,7 +26,7 @@ By using this function, you can reduce the chance of accidentally drawing anothe
 1girl, smile, red hair,
 
 [CLASS=eyes]
-red eyes, close-up
+red eyes, close-up, <lora:MyLora:1>
 
 [CLASS=hands]
 heart hands
@@ -42,4 +42,5 @@ heart hands
 ### Notes
 
 - Class names must match the model's class names exactly (e.g., "person", "car", "dog", etc.)
+- You can apply different LoRAs for each class
 - This feature works with both positive and negative prompts

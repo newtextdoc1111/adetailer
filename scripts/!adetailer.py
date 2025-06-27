@@ -306,26 +306,73 @@ class AfterDetailerScript(scripts.Script):
                 prompts[n] = prompts[n].replace(pair.s, pair.r)
         return prompts
 
-    def get_prompt(self, p, args: ADetailerArgs) -> tuple[list[str], list[str]]:
+    def _parse_class_specific_prompts(self, text: str) -> dict:
+        """
+        Parses a string with a class specific format and returns a dictionary
+        with class names as keys and tag strings as values.
+        """
+        pattern = r"\[CLASS=(.*?)\]\n?"
+        parts = re.split(pattern, text.strip())
+
+        result = {}
+        for i in range(1, len(parts), 2):
+            key = parts[i]
+            value = ""
+            if i + 1 < len(parts):
+                value = parts[i + 1].strip()
+
+            result[key] = value
+
+        return result
+
+    def _remove_class_specific_prompts(self, prompt: str) -> str:
+        return re.split(r"\[CLASS=.*\]", prompt, maxsplit=1)[0].strip()
+
+    def get_prompt(
+        self,
+        p,
+        args: ADetailerArgs,
+    ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
         i = get_i(p)
         prompt_sr = p._ad_xyz_prompt_sr if hasattr(p, "_ad_xyz_prompt_sr") else []
 
-        prompt = self._get_prompt(
-            ad_prompt=args.ad_prompt,
+        prompts = {}
+        class_prompts = self._parse_class_specific_prompts(args.ad_prompt)
+        for class_name, class_prompt in class_prompts.items():
+            prompts[class_name] = self._get_prompt(
+                ad_prompt=class_prompt,
+                all_prompts=p.all_prompts,
+                i=i,
+                default=p.prompt,
+                replacements=prompt_sr,
+            )
+        prompts["all"] = self._get_prompt(
+            ad_prompt=self._remove_class_specific_prompts(args.ad_prompt),
             all_prompts=p.all_prompts,
             i=i,
             default=p.prompt,
             replacements=prompt_sr,
         )
-        negative_prompt = self._get_prompt(
-            ad_prompt=args.ad_negative_prompt,
-            all_prompts=p.all_negative_prompts,
+
+        negative_prompts = {}
+        class_neg_prompts = self._parse_class_specific_prompts(args.ad_prompt)
+        for class_neg_name, class_neg_prompt in class_neg_prompts.items():
+            negative_prompts[class_neg_name] = self._get_prompt(
+                ad_prompt=class_neg_prompt,
+                all_prompts=p.all_negative_prompts,
+                i=i,
+                default=p.negative_prompt,
+                replacements=prompt_sr,
+            )
+        negative_prompts["all"] = self._get_prompt(
+            ad_prompt=self._remove_class_specific_prompts(args.ad_prompt),
+            all_prompts=p.all_prompts,
             i=i,
-            default=p.negative_prompt,
+            default=p.prompt,
             replacements=prompt_sr,
         )
 
-        return prompt, negative_prompt
+        return prompts, negative_prompts
 
     def get_seed(self, p) -> tuple[int, int]:
         i = get_i(p)
@@ -635,17 +682,17 @@ class AfterDetailerScript(scripts.Script):
         i2i.negative_prompt = negative_prompt
 
     @staticmethod
-    def compare_prompt(extra_params: dict[str, Any], processed, n: int = 0):
+    def compare_prompt(extra_params: dict[str, Any], processed, class_name, n: int = 0):
         pt = "ADetailer prompt" + suffix(n)
         if pt in extra_params and extra_params[pt] != processed.all_prompts[0]:
             print(
-                f"[-] ADetailer: applied {ordinal(n + 1)} ad_prompt: {processed.all_prompts[0]!r}"
+                f"[-] ADetailer: applied {ordinal(n + 1)} {class_name}. ad_prompt: {processed.all_prompts[0]!r}"
             )
 
         ng = "ADetailer negative prompt" + suffix(n)
         if ng in extra_params and extra_params[ng] != processed.all_negative_prompts[0]:
             print(
-                f"[-] ADetailer: applied {ordinal(n + 1)} ad_negative_prompt: {processed.all_negative_prompts[0]!r}"
+                f"[-] ADetailer: applied {ordinal(n + 1)} {class_name}. ad_negative_prompt: {processed.all_negative_prompts[0]!r}"
             )
 
     @staticmethod
@@ -792,11 +839,11 @@ class AfterDetailerScript(scripts.Script):
         arg_list = self.get_args(p, *args_)
 
         if hasattr(p, "_ad_xyz_prompt_sr"):
-            replaced_positive_prompt, replaced_negative_prompt = self.get_prompt(
+            replaced_positive_prompts, replaced_negative_prompts = self.get_prompt(
                 p, arg_list[0]
             )
-            arg_list[0].ad_prompt = replaced_positive_prompt[0]
-            arg_list[0].ad_negative_prompt = replaced_negative_prompt[0]
+            arg_list[0].ad_prompt = replaced_positive_prompts["all"][0]
+            arg_list[0].ad_negative_prompt = replaced_negative_prompts["all"][0]
 
         extra_params = self.extra_params(arg_list)
         p.extra_generation_params.update(extra_params)
@@ -861,9 +908,20 @@ class AfterDetailerScript(scripts.Script):
 
         p2 = copy(i2i)
         for j in range(steps):
+            class_name = pred.class_names[j]
+            prompts = (
+                ad_prompts[class_name]
+                if class_name in ad_prompts
+                else ad_prompts["all"]
+            )
+            negatives = (
+                ad_negatives[class_name]
+                if class_name in ad_negatives
+                else ad_negatives["all"]
+            )
             p2.image_mask = masks[j]
             p2.init_images[0] = ensure_pil_image(p2.init_images[0], "RGB")
-            self.i2i_prompts_replace(p2, ad_prompts, ad_negatives, j)
+            self.i2i_prompts_replace(p2, prompts, negatives, j)
 
             if re.match(r"^\s*\[SKIP\]\s*$", p2.prompt):
                 continue
@@ -883,7 +941,7 @@ class AfterDetailerScript(scripts.Script):
                 processed = None
                 break
 
-            self.compare_prompt(p.extra_generation_params, processed, n=n)
+            self.compare_prompt(p.extra_generation_params, processed, class_name, n=n)
             p2 = copy(i2i)
             p2.init_images = [processed.images[0]]
 

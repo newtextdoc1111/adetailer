@@ -24,6 +24,7 @@ class PredictOutput(Generic[T]):
     masks: list[Image.Image] = field(default_factory=list)
     confidences: list[float] = field(default_factory=list)
     preview: Optional[Image.Image] = None
+    class_names: list[str] = field(default_factory=list)
 
 
 def hf_download(file: str, repo_id: str = REPO_ID, check_remote: bool = True) -> str:

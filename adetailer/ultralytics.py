@@ -50,12 +50,23 @@ def ultralytics_predict(
 
     confidences = pred[0].boxes.conf.cpu().numpy().tolist()
 
+    # Extract class names
+    if pred[0].boxes.cls is not None and len(pred[0].boxes.cls) > 0:
+        class_ids = pred[0].boxes.cls.cpu().numpy().astype(int).tolist()
+        class_names = [model.names[class_id] for class_id in class_ids]
+    else:
+        class_names = []
+
     preview = pred[0].plot()
     preview = cv2.cvtColor(preview, cv2.COLOR_BGR2RGB)
     preview = Image.fromarray(preview)
 
     return PredictOutput(
-        bboxes=bboxes, masks=masks, confidences=confidences, preview=preview
+        bboxes=bboxes,
+        masks=masks,
+        confidences=confidences,
+        preview=preview,
+        class_names=class_names,
     )
 
 

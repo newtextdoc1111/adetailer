@@ -332,6 +332,15 @@ def detection(w: Widgets, n: int, is_img2img: bool):
                 elem_id=eid("ad_mask_max_ratio"),
             )
 
+        with gr.Column(variant="compact"):
+            w.ad_use_bbox_mask = gr.Checkbox(
+                label="Use bounding box as mask" + suffix(n),
+                value=False,
+                visible=True,
+                elem_id=eid("ad_use_bbox_mask"),
+                info="Enforces bounding box masks on segmentation model.",
+            )
+
 
 def mask_preprocessing(w: Widgets, n: int, is_img2img: bool):
     eid = partial(elem_id, n=n, is_img2img=is_img2img)

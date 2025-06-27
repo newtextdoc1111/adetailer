@@ -21,6 +21,7 @@ def ultralytics_predict(
     confidence: float = 0.3,
     device: str = "",
     classes: str = "",
+    use_bbox_mask: bool = False,
 ) -> PredictOutput[float]:
     from ultralytics import YOLO
 
@@ -33,7 +34,7 @@ def ultralytics_predict(
         return PredictOutput()
     bboxes = bboxes.tolist()
 
-    if pred[0].masks is None:
+    if pred[0].masks is None or use_bbox_mask:
         masks = create_mask_from_bbox(bboxes, image.size)
     else:
         masks = mask_to_pil(pred[0].masks.data, image.size)

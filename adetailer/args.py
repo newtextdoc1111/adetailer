@@ -64,6 +64,7 @@ class ADetailerArgs(BaseModel, extra=Extra.forbid):
     ad_mask_k: NonNegativeInt = 0
     ad_mask_min_ratio: confloat(ge=0.0, le=1.0) = 0.0
     ad_mask_max_ratio: confloat(ge=0.0, le=1.0) = 1.0
+    ad_use_bbox_mask: bool = False
     ad_dilate_erode: int = 4
     ad_x_offset: int = 0
     ad_y_offset: int = 0
@@ -226,6 +227,7 @@ _all_args = [
     ("ad_mask_k", "ADetailer mask only top k"),
     ("ad_mask_min_ratio", "ADetailer mask min ratio"),
     ("ad_mask_max_ratio", "ADetailer mask max ratio"),
+    ("ad_use_bbox_mask", "ADetailer use bbox mask"),
     ("ad_x_offset", "ADetailer x offset"),
     ("ad_y_offset", "ADetailer y offset"),
     ("ad_dilate_erode", "ADetailer dilate erode"),

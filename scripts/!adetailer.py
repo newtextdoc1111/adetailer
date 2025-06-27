@@ -833,6 +833,7 @@ class AfterDetailerScript(scripts.Script):
                     confidence=args.ad_confidence,
                     device=self.ultralytics_device,
                     classes=args.ad_model_classes,
+                    use_bbox_mask=args.ad_use_bbox_mask,
                 )
 
         if pred.preview is None:

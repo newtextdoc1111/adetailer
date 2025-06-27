@@ -23,11 +23,20 @@ def ultralytics_predict(
     classes: str = "",
     use_bbox_mask: bool = False,
 ) -> PredictOutput[float]:
-    from ultralytics import YOLO
+    from ultralytics import YOLO, YOLOWorld
 
     model = YOLO(model_path)
-    apply_classes(model, model_path, classes)
-    pred = model(image, conf=confidence, device=device)
+    if isinstance(model, YOLOWorld):
+        apply_classes(model, model_path, classes)
+        pred = model(image, conf=confidence, device=device)
+    else:  # YOLO model
+        target_class_ids = get_class_indices(model, classes)
+        pred = model.predict(
+            image,
+            conf=confidence,
+            classes=target_class_ids if len(target_class_ids) > 0 else None,
+            device=device,
+        )
 
     bboxes = pred[0].boxes.xyxy.cpu().numpy()
     if bboxes.size == 0:
@@ -56,6 +65,14 @@ def apply_classes(model: YOLO | YOLOWorld, model_path: str | Path, classes: str)
     parsed = [c.strip() for c in classes.split(",") if c.strip()]
     if parsed:
         model.set_classes(parsed)
+
+
+def get_class_indices(model: YOLO, classes: str) -> list[int]:
+    """
+    Get class indices from the model based on the provided class names.
+    """
+    parsed = [c.strip() for c in classes.split(",") if c.strip()]
+    return [idx for idx, name in enumerate(model.names.values()) if name in parsed]
 
 
 def mask_to_pil(masks: torch.Tensor, shape: tuple[int, int]) -> list[Image.Image]:

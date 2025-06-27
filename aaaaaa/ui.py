@@ -97,7 +97,11 @@ def on_ad_model_update(model: str):
             visible=True,
             placeholder="Comma separated class names to detect, ex: 'person,cat'. default: COCO 80 classes",
         )
-    return gr.update(visible=False, placeholder="")
+    else:
+        return gr.update(
+            visible=True,
+            placeholder="Comma separated class names to detect, ex: 'person,cat,dog'. Leave empty to detect all classes",
+        )
 
 
 def on_cn_model_update(cn_model_name: str):

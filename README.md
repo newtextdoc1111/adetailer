@@ -2,6 +2,19 @@
 
 ADetailer is an extension for the stable diffusion webui that does automatic masking and inpainting. It is similar to the Detection Detailer.
 
+## Repository Information
+
+This is a fork of the [original ADetailer repository](https://github.com/Bing-su/adetailer). Changes and improvements made in this fork can be found in the [CHANGELOG_en.md](CHANGELOG_en.md).
+
+## Installation (Fork Version)
+
+To install this fork version, please **uninstall the original `Bing-su/adetailer` extension first**, then install this fork using "Install from URL":
+
+1. If you have the original ADetailer installed, delete the `adetailer` folder from your `extensions` directory (e.g., `stable-diffusion-webui/extensions/adetailer`)
+2. Go to Extensions → Install from URL
+3. Enter `https://github.com/newtextdoc1111/adetailer.git` in the URL field
+4. Click Install and restart the WebUI
+
 ## Install
 
 You can install it directly from the Extensions tab.

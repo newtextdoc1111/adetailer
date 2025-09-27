@@ -11,6 +11,7 @@ import gradio as gr
 from aaaaaa.conditional import InputAccordion
 from adetailer import ADETAILER, __version__
 from adetailer.args import ALL_ARGS, MASK_MERGE_INVERT
+from adetailer.ultralytics import ultralytics_get_class
 from controlnet_ext import controlnet_exists, controlnet_type, get_cn_models
 
 if controlnet_type == "forge":
@@ -54,7 +55,7 @@ class Widgets(SimpleNamespace):
 
 @dataclass
 class WebuiInfo:
-    ad_model_list: list[str]
+    ad_models: dict[str, str]
     sampler_names: list[str]
     scheduler_names: list[str]
     t2i_button: gr.Button
@@ -96,12 +97,25 @@ def on_ad_model_update(model: str):
         return gr.update(
             visible=True,
             placeholder="Comma separated class names to detect, ex: 'person,cat'. default: COCO 80 classes",
-        )
+        ), gr.update(visible=False)
     else:
         return gr.update(
             visible=True,
             placeholder="Comma separated class names to detect, ex: 'person,cat,dog'. Leave empty to detect all classes",
-        )
+        ), gr.update(visible=True)
+
+
+def on_get_classes_click(model_name: str, model_dict: dict[str, str]):
+    """Get class names from selected YOLO model."""
+    if not model_name or model_name not in model_dict:
+        return ""
+
+    try:
+        class_names = ultralytics_get_class(model_dict[model_name])
+        return ", ".join(class_names)
+    except Exception as e:
+        print(f"Error getting classes from model {model_name}: {e}")
+        return ""
 
 
 def on_cn_model_update(cn_model_name: str):
@@ -178,9 +192,9 @@ def one_ui_group(n: int, is_img2img: bool, webui_info: WebuiInfo):
     eid = partial(elem_id, n=n, is_img2img=is_img2img)
 
     model_choices = (
-        [*webui_info.ad_model_list, "None"]
+        [*webui_info.ad_models.keys(), "None"]
         if n == 0
-        else ["None", *webui_info.ad_model_list]
+        else ["None", *webui_info.ad_models.keys()]
     )
 
     with gr.Group():
@@ -204,19 +218,37 @@ def one_ui_group(n: int, is_img2img: bool, webui_info: WebuiInfo):
             )
 
         with gr.Row():
-            w.ad_model_classes = gr.Textbox(
-                label="ADetailer detector classes" + suffix(n),
-                value="",
-                visible=False,
-                elem_id=eid("ad_model_classes"),
+            gr.HTML(
+                value="<p style='margin-bottom: 0.1em;margin-top: 0.4em'>ADetailer detector classes</p>"
             )
+        with gr.Row():
+            with gr.Column(scale=8):
+                w.ad_model_classes = gr.Textbox(
+                    show_label=False,
+                    value="",
+                    visible=False,
+                    elem_id=eid("ad_model_classes"),
+                )
+            with gr.Column(scale=1, min_width=80, variant="compact"):
+                w.ad_get_classes_button = gr.Button(
+                    value="Get Class List",
+                    visible=False,
+                    elem_id=eid("ad_get_classes_button"),
+                )
 
-            w.ad_model.change(
-                on_ad_model_update,
-                inputs=w.ad_model,
-                outputs=w.ad_model_classes,
-                queue=False,
-            )
+        w.ad_model.change(
+            on_ad_model_update,
+            inputs=w.ad_model,
+            outputs=[w.ad_model_classes, w.ad_get_classes_button],
+            queue=False,
+        )
+
+        w.ad_get_classes_button.click(
+            partial(on_get_classes_click, model_dict=webui_info.ad_models),
+            inputs=w.ad_model,
+            outputs=w.ad_model_classes,
+            queue=False,
+        )
 
     gr.HTML("<br>")
 
@@ -246,9 +278,7 @@ def one_ui_group(n: int, is_img2img: bool, webui_info: WebuiInfo):
             )
 
     with gr.Group():
-        with gr.Accordion(
-            "Detection", open=False, elem_id=eid("ad_detection_accordion")
-        ):
+        with gr.Accordion("Detection", open=False, elem_id=eid("ad_detection_accordion")):
             detection(w, n, is_img2img)
 
         with gr.Accordion(
@@ -301,8 +331,7 @@ def detection(w: Widgets, n: int, is_img2img: bool):
             w.ad_mask_filter_method = gr.Radio(
                 choices=["Area", "Confidence"],
                 value="Area",
-                label="Method to filter top k masks by (confidence or area)"
-                + suffix(n),
+                label="Method to filter top k masks by (confidence or area)" + suffix(n),
                 visible=True,
                 elem_id=eid("ad_mask_filter_method"),
             )

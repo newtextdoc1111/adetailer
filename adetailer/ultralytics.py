@@ -15,6 +15,20 @@ if TYPE_CHECKING:
     from ultralytics import YOLO, YOLOWorld
 
 
+def ultralytics_get_class(model_path: str | Path) -> list[str]:
+    """
+    Get class names from YOLO model.
+    """
+    from ultralytics import YOLO
+
+    model = YOLO(model_path)
+
+    if not hasattr(model, "names"):
+        return []
+
+    return list(model.names.values())
+
+
 def ultralytics_predict(
     model_path: str | Path,
     image: Image.Image,

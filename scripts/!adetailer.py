@@ -121,7 +121,7 @@ class AfterDetailerScript(scripts.Script):
 
     def ui(self, is_img2img):
         num_models = opts.data.get("ad_max_models", 2)
-        ad_model_list = list(model_mapping.keys())
+        ad_models = model_mapping
         sampler_names = [sampler.name for sampler in all_samplers]
         scheduler_names = [x.label for x in schedulers]
 
@@ -129,7 +129,7 @@ class AfterDetailerScript(scripts.Script):
         vae_list = modules.shared_items.sd_vae_items()
 
         webui_info = WebuiInfo(
-            ad_model_list=ad_model_list,
+            ad_models=ad_models,
             sampler_names=sampler_names,
             scheduler_names=scheduler_names,
             t2i_button=txt2img_submit_button,
@@ -465,9 +465,7 @@ class AfterDetailerScript(scripts.Script):
 
     @staticmethod
     def infotext(p) -> str:
-        return create_infotext(
-            p, p.all_prompts, p.all_seeds, p.all_subseeds, None, 0, 0
-        )
+        return create_infotext(p, p.all_prompts, p.all_seeds, p.all_subseeds, None, 0, 0)
 
     def read_params_txt(self) -> str:
         params_txt = Path(paths.data_path, PARAMS_TXT)
@@ -729,7 +727,9 @@ class AfterDetailerScript(scripts.Script):
 
     @staticmethod
     def get_dynamic_denoise_strength(
-        denoise_strength: float, bbox: Sequence[Any], image_size: tuple[int, int]
+        denoise_strength: float,
+        bbox: Sequence[Any],
+        image_size: tuple[int, int],
     ):
         denoise_power = opts.data.get("ad_dynamic_denoise_power", 0)
         if denoise_power == 0:
@@ -796,7 +796,13 @@ class AfterDetailerScript(scripts.Script):
         return optimal_resolution
 
     def fix_p2(  # noqa: PLR0913
-        self, p, p2, pp: PPImage, args: ADetailerArgs, pred: PredictOutput, j: int
+        self,
+        p,
+        p2,
+        pp: PPImage,
+        args: ADetailerArgs,
+        pred: PredictOutput,
+        j: int,
     ):
         seed, subseed = self.get_seed(p)
         p2.seed = self.get_each_tab_seed(seed, j)
@@ -821,9 +827,7 @@ class AfterDetailerScript(scripts.Script):
 
         if is_img2img_inpaint(p) and is_all_black(self.get_image_mask(p)):
             p._ad_disabled = True
-            msg = (
-                "[-] ADetailer: img2img inpainting with no mask -- adetailer disabled."
-            )
+            msg = "[-] ADetailer: img2img inpainting with no mask -- adetailer disabled."
             print(msg)
             return
 
@@ -910,9 +914,7 @@ class AfterDetailerScript(scripts.Script):
         for j in range(steps):
             class_name = pred.class_names[j]
             prompts = (
-                ad_prompts[class_name]
-                if class_name in ad_prompts
-                else ad_prompts["all"]
+                ad_prompts[class_name] if class_name in ad_prompts else ad_prompts["all"]
             )
             negatives = (
                 ad_negatives[class_name]
@@ -976,7 +978,10 @@ class AfterDetailerScript(scripts.Script):
 
         if is_processed and not is_skip_img2img(p):
             self.save_image(
-                p, init_image, condition="ad_save_images_before", suffix="-ad-before"
+                p,
+                init_image,
+                condition="ad_save_images_before",
+                suffix="-ad-before",
             )
 
         if need_call_process(p):

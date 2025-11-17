@@ -355,7 +355,7 @@ class AfterDetailerScript(scripts.Script):
         )
 
         negative_prompts = {}
-        class_neg_prompts = self._parse_class_specific_prompts(args.ad_prompt)
+        class_neg_prompts = self._parse_class_specific_prompts(args.ad_negative_prompt)
         for class_neg_name, class_neg_prompt in class_neg_prompts.items():
             negative_prompts[class_neg_name] = self._get_prompt(
                 ad_prompt=class_neg_prompt,
@@ -365,10 +365,10 @@ class AfterDetailerScript(scripts.Script):
                 replacements=prompt_sr,
             )
         negative_prompts["all"] = self._get_prompt(
-            ad_prompt=self._remove_class_specific_prompts(args.ad_prompt),
-            all_prompts=p.all_prompts,
+            ad_prompt=self._remove_class_specific_prompts(args.ad_negative_prompt),
+            all_prompts=p.all_negative_prompts,
             i=i,
-            default=p.prompt,
+            default=p.negative_prompt,
             replacements=prompt_sr,
         )
 

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import cv2
+import numpy as np
 from PIL import Image
 from torchvision.transforms.functional import to_pil_image
 
@@ -88,13 +89,30 @@ def get_class_indices(model: YOLO, classes: str) -> list[int]:
 
 def mask_to_pil(masks: torch.Tensor, shape: tuple[int, int]) -> list[Image.Image]:
     """
+    Convert segmentation masks to PIL Images.
+
     Parameters
     ----------
-    masks: torch.Tensor, dtype=torch.float32, shape=(N, H, W).
-        The device can be CUDA, but `to_pil_image` takes care of that.
+    masks: torch.Tensor, dtype=torch.uint8 or torch.float32, shape=(N, H, W).
+        Segmentation masks from Ultralytics YOLO model.
+        The device can be CUDA.
 
     shape: tuple[int, int]
-        (W, H) of the original image
+        (W, H) of the original image for resizing.
+
+    Returns
+    -------
+    list[Image.Image]
+        List of PIL Images in mode "L" (grayscale), resized to the target shape.
+
+    Notes
+    -----
+    This function handles both uint8 (0-1 values) and float32 (0.0-1.0 values) masks
+    from different versions of Ultralytics. The masks are converted to 0-255 range
+    for proper visualization.
     """
-    n = masks.shape[0]
-    return [to_pil_image(masks[i], mode="L").resize(shape) for i in range(n)]
+    # Convert to 0-255 range for proper visualization
+    # Handles both uint8 (0-1) and float32 (0.0-1.0)
+    masks_uint8 = (masks.cpu().numpy() * 255).astype(np.uint8)
+
+    return [to_pil_image(mask, mode="L").resize(shape) for mask in masks_uint8]

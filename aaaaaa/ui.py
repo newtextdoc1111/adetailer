@@ -91,17 +91,21 @@ def on_generate_click(state: dict, *values: Any):
     return state
 
 
-def on_ad_model_update(model: str):
+def get_model_classes_config(model: str) -> tuple[bool, str]:
+    if model == "None":
+        return False, ""
+
     if "-world" in model:
-        return gr.update(
-            visible=True,
-            placeholder="Comma separated class names to detect, ex: 'person,cat'. default: COCO 80 classes",
-        )
-    else:
-        return gr.update(
-            visible=True,
-            placeholder="Comma separated class names to detect, ex: 'person,cat,dog'. Leave empty to detect all classes",
-        )
+        placeholder = "Comma separated class names to detect, ex: 'person,cat'. default: COCO 80 classes"
+        return True, placeholder
+
+    placeholder = "Comma separated class names to detect, ex: 'person,cat,dog'. Leave empty to detect all classes"
+    return True, placeholder
+
+
+def on_ad_model_update(model: str):
+    visible, placeholder = get_model_classes_config(model)
+    return gr.update(visible=visible, placeholder=placeholder)
 
 
 def on_cn_model_update(cn_model_name: str):
@@ -204,10 +208,13 @@ def one_ui_group(n: int, is_img2img: bool, webui_info: WebuiInfo):
             )
 
         with gr.Row():
+            visible, placeholder = get_model_classes_config(model_choices[0])
+
             w.ad_model_classes = gr.Textbox(
                 label="ADetailer detector classes" + suffix(n),
                 value="",
-                visible=False,
+                visible=visible,
+                placeholder=placeholder,
                 elem_id=eid("ad_model_classes"),
             )
 

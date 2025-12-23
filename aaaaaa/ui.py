@@ -218,6 +218,14 @@ def one_ui_group(n: int, is_img2img: bool, webui_info: WebuiInfo):
                 elem_id=eid("ad_model_classes"),
             )
 
+            # Called when ui-config.json restores the dropdown value
+            def update_classes_on_init(model: str):
+                visible, placeholder = get_model_classes_config(model)
+                w.ad_model_classes.visible = visible
+                w.ad_model_classes.placeholder = placeholder
+
+            w.ad_model.init_field = update_classes_on_init
+
             w.ad_model.change(
                 on_ad_model_update,
                 inputs=w.ad_model,
